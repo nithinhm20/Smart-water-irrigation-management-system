@@ -1,0 +1,63 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// Define pin numbers
+const int soilMoisturePin = A0; // Analog pin for soil moisture sensor
+const int tempSensorPin = A1;   // Analog pin for temperature sensor (if using LM35)
+const int motorPin = 9;         // Digital pin for motor control (relay or transistor)
+
+// Define moisture threshold and temperature ranges
+const int moistureThreshold = 65; // Moisture level threshold (65%)
+const float temperatureThresholdLow = 15.0; // Minimum temperature in °C
+const float temperatureThresholdHigh = 30.0; // Maximum temperature in °C
+
+// Initialize the LCD (address 0x27, 16 columns, 2 rows)
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+void setup() {
+  pinMode(soilMoisturePin, INPUT);
+  pinMode(tempSensorPin, INPUT);
+  pinMode(motorPin, OUTPUT);
+  
+  lcd.begin();          // Initialize the LCD
+  lcd.backlight();     // Turn on the backlight
+  lcd.setCursor(0, 0); // Set cursor to column 0, row 0
+  lcd.print("Watering System");
+  delay(2000);         // Display startup message for 2 seconds
+}
+
+void loop() {
+  // Read soil moisture level
+  int soilMoistureValue = analogRead(soilMoisturePin);
+  // Convert the analog value to percentage
+  float soilMoisturePercentage = map(soilMoistureValue, 0, 1023, 0, 100);
+  
+  // Read temperature (assuming LM35, where output is 10mV per °C)
+  int tempSensorValue = analogRead(tempSensorPin);
+  float temperatureC = (tempSensorValue / 1023.0) * 5.0 * 100.0; // Convert to °C
+  
+  // Update LCD display
+  lcd.clear(); // Clear the LCD
+  lcd.setCursor(0, 0);
+  lcd.print("Moisture: ");
+  lcd.print(soilMoisturePercentage);
+  lcd.print("%");
+  
+  lcd.setCursor(0, 1);
+  lcd.print("Temp: ");
+  lcd.print(temperatureC);
+  lcd.print("C");
+  
+  // Control motor based on soil moisture and temperature
+  if (soilMoisturePercentage < moistureThreshold && temperatureC >= temperatureThresholdLow && temperatureC <= temperatureThresholdHigh) {
+    digitalWrite(motorPin, HIGH); // Turn on the motor
+    lcd.setCursor(12, 0);
+    lcd.print("Motor ON");
+  } else {
+    digitalWrite(motorPin, LOW); // Turn off the motor
+    lcd.setCursor(12, 0);
+    lcd.print("Motor OFF");
+  }
+  
+  delay(2000); // Wait for 2 seconds before next reading
+}
